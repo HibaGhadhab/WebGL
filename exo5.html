@@ -38,12 +38,12 @@
 		<script type="x-shader/x-vertex" id="vertexshader">
 
 			varying vec3 pos;
-
+			uniform float time;
 
 			void main() {
 
 				pos = position /400.; 
-
+				pos = pos * sin(time);
 				gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
 
 			}
@@ -53,13 +53,13 @@
 		<script type="x-shader/x-fragment" id="fragmentshader">
 			
 			varying vec3 pos;
-
+			uniform float time;
 
 			void main() {
 
 				vec4 color = vec4(0.,0.,0.5, 0.);
 				float dist = length(pos);
-				if (dist>0.9) color = vec4(1.,1., 0., 1.);
+				if (dist>0.9) color = vec4(abs(sin(time)),1.,0.,1.);
 	
 				
 				gl_FragColor = color;
@@ -77,6 +77,8 @@
 			var camera, scene, renderer;
 
 			var mesh;
+			var time = 0;
+			var uniforms;
 
 			init();
 			animate();
@@ -198,11 +200,9 @@
 
                 geometry.computeBoundingSphere();
                 
-
-
-			    var uniforms = {
-
-                };
+				uniforms = {
+						time: { value: 0.0 }
+					};
 
                 var shaderMaterial = new THREE.ShaderMaterial( {
 
@@ -212,14 +212,12 @@
 
                 } );
 
-
-
 				var material = new THREE.MeshPhongMaterial( {
 					color: 0xaaaaaa, specular: 0xffffff, shininess: 250,
 					side: THREE.DoubleSide, vertexColors: THREE.VertexColors
 				} );
 
-				mesh = new THREE.Mesh( geometry, shaderMaterial );
+				mesh = new THREE.Mesh( geometry, shaderMaterial);
 				scene.add( mesh );
 
 				//
@@ -234,8 +232,10 @@
 				container.appendChild( renderer.domElement );
 
 				window.addEventListener( 'resize', onWindowResize, false );
-
+				
 			}
+
+
 
 			function onWindowResize() {
 
@@ -252,9 +252,11 @@
 				render();
 			}
 
-			function render() {
 
-				var time = Date.now() * 0.001;
+			function render() {
+				//var time = Date.now() * 0.001;
+				time += 0.02;
+				mesh.material.uniforms.time.value = time; 
 
 				mesh.rotation.x = time * 0.25;
 				mesh.rotation.y = time * 0.5;
