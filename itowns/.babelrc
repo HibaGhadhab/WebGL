@@ -1,0 +1,25 @@
+{
+    "presets": ["@babel/preset-env"],
+    "plugins": [
+        ["module-resolver",  { "root": ["./src"] } ],
+        ["babel-plugin-inline-import", {
+            "extensions": [
+                ".json",
+                ".glsl"
+            ]
+        }],
+        ["@babel/plugin-transform-runtime"],
+        ["minify-replace", {
+            "replacements": [{
+                "identifierName": "__DEBUG__",
+                "replacement": {
+                    "type": "booleanLiteral",
+                    "value": false
+                }
+            }]
+        }],
+        ["minify-dead-code-elimination"]
+    ]
+}
+
+

@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				background-color: #000000;
+				margin: 0px;
+				overflow: hidden;
+				font-family:Monospace;
+				font-size:13px;
+				text-align:center;
+				font-weight: bold;
+				text-align:center;
+			}
+			
+		</style>
+	</head>
+	<body>
+
+		<div id="container" ondrop="drop(event)" ></div>
+
+		<script src="three2.js"></script>
+		<script src="dat.gui.js"></script>
+
+		<script>
+	
+			// Variables globales
+			var container, stats;
+			var camera, scene, renderer, particles, geometry, material, i, h, color,  size, spotLight;
+			var groundMesh;
+			var mouseX = 0, mouseY = 0;
+			var windowHalfX = window.innerWidth / 2;
+			var windowHalfY = window.innerHeight / 2;
+			var t = 0;
+			var myHeight = 10;
+			init();
+						
+			function init() {
+				
+
+				camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 3000 );
+				camera.position.x = 40;
+		        camera.position.y = 80;
+		        camera.position.z = 50;
+				scene = new THREE.Scene();
+				scene.fog = new THREE.FogExp2( 0x000000, 0.0009 );
+
+			
+				// Ajout des lumières
+		        spotLight = new THREE.SpotLight(0xffffff);
+		        spotLight.position.set(10, 40, 10);	
+		        spotLight.intensity = 2;
+		        scene.add(spotLight);
+		        sphere = new THREE.Mesh( new THREE.SphereGeometry( 3, 10, 10 ), new THREE.MeshBasicMaterial( {transparent:true, opacity: 0.7,color: 0xffff00} ));
+		        spotLight.add(sphere); // Pour voir position lumière
+		       
+		        scene.add(new THREE.AmbientLight(0x707070));
+
+
+				
+				loadImageForMesh();  // Load image and create mesh with it
+				
+				
+				renderer = new THREE.WebGLRenderer();
+				renderer.shadowMapEnabled = true;
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				document.getElementById("container").appendChild( renderer.domElement );
+							
+				document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+				document.addEventListener( 'touchstart', onDocumentTouchStart, false );
+				document.addEventListener( 'touchmove', onDocumentTouchMove, false );
+				window.addEventListener( 'resize', onWindowResize, false );
+			}
+			
+			
+			 //dat.gui
+			var FizzyText = function() {
+				this.message = 'dat.gui';
+				this.myHeight = 10;
+        	};
+
+			window.onload = function() {
+				var text = new FizzyText();
+				var gui = new dat.GUI();
+				gui.add(text, 'message');
+				gui.add(text, 'myHeight', 0, 50).onChange(function(value){myHeight = value});
+			};
+                function loadImageForMesh(imgName){
+                    
+                     var imgName = imgName || "DTMTexture.png"; //images/ile.jpg"; //Epicea_ICU_ITOWNS.png;
+                     var img = new Image();
+                     img.crossOrigin = 'use-credentials';  // Very important when images are not on local server. 
+                     img.onload = function() {
+                         console.log("img loaded");
+                         parseImage(img);
+                     
+                     };
+                     img.src = imgName;
+    
+                }
+                
+                
+                function parseImage(img){
+                    
+                    var imageWidth = img.width;
+                    var imageHeight = img.height;
+                    var sizeCell = 2; // taille cellule
+                    var nbPixPerCell = 6; //Optionnel, pour sous ech
+                    var scaling = 1; 
+                    var  height = 2;  // param variation alti pour random
+                    
+                    
+                    // Initialisation tableau2D pour stocker image sous forme matriciel
+                    colorArray = new Array(imageWidth);
+					for (var i = 0; i < imageWidth; i++) {
+					  colorArray[i] = new Array(imageHeight);
+					}
+                    
+                    console.log("img ",img,' size',img.width, img.height);
+         
+         			// Creation du canvas pour dessin de l image et recuperation info pixel
+                    var c = document.createElement("CANVAS");
+                    c.width = imageWidth;
+                    c.height = imageHeight;
+                    document.body.appendChild(c);
+                    var context = c.getContext('2d');
+                    context.drawImage(img, 0, 0,imageWidth,imageHeight,0,0,imageWidth/scaling,imageHeight/scaling);            
+                    var imageData = context.getImageData(0, 0, imageWidth/scaling, imageHeight/scaling);
+                    var data = imageData.data;
+                    console.log("nb Px image",data.length/4);
+                
+                    // iteration sur tous les pixels
+                    for(var i = 0; i < data.length; i += 4) {
+                        
+                      var red   = data[i];
+                      var green = data[i + 1];
+                      var blue  = data[i + 2];
+                      var alpha = data[i + 3];
+
+                      var colorRGB = new THREE.Color().setRGB(red/255,green/255,blue/255);
+                 	  var x = (Math.floor(i / 4) % (imageWidth/scaling));
+                      var y = Math.floor(Math.floor(i/(imageWidth/scaling))/4);
+	
+					  colorArray[x][y] = colorRGB;
+					  
+                     }
+                     
+                     // On peut maintenant creer le maillage avec les informations images
+                     createGrid(imageWidth, imageHeight, sizeCell, sizeCell, height);
+                    
+   		  }
+
+			
+			//var verticesOrigin = geometry.vertices.slice();
+
+			// Creation du maillage 
+			function createGrid(width, depth, spacingX, spacingZ, height) {
+		
+		        // D abord les sommets
+				//les sommets de la grille
+		        var geometry = new THREE.Geometry();
+		        for (var z = -depth/2 ; z < depth/2 ; z++) {
+		            for (var x = -width/2 ; x < width/2 ; x++) {
+						var heigthFromColor = (- colorArray[x+width/2][z+depth/2].getHSL().l) * myHeight;  // La hauteur dependra de la couleur
+						//console.log(heigthFromColor);
+						var vertex = new THREE.Vector3(x*spacingX, heigthFromColor,z*spacingZ);//Math.random()*height,z*spacingZ);
+		                geometry.vertices.push(vertex);
+
+		            }
+		        }
+		
+		        // Ensuite les faces 
+		        // Rectangle entre 4 sommets a composer avec 2 triangles
+		        for (var z = 0 ; z < depth-1 ; z++) {
+		            for (var x = 0 ; x < width-1 ; x++) {
+		                // Il faut trouver l indice de position correspondant
+		                // a - - b
+		                // |  x  |
+		                // c - - d
+		                var a = x + z*width;
+		                var b = (x+1) + (z * width);
+		                var c = x + ((z+1) * width);
+		                var d = (x+1) + ((z+1) * width);
+						
+		                var face1 = new THREE.Face3(b, a, c );
+		                var face2 = new THREE.Face3(c ,d, b );
+		                
+		                // On recupere la couleur depuis l image
+						var col = colorArray[x][z];
+		
+		                face1.color = col;
+		                face2.color = col;
+		                geometry.faces.push(face1);
+		                geometry.faces.push(face2);
+		            }
+		        }
+		
+		        // calcul des normals
+		        geometry.computeVertexNormals(true);
+		        geometry.computeFaceNormals();
+		
+		        // On cree le material avec gestion lumiere
+		        var mat = new THREE.MeshPhongMaterial();
+		        mat.vertexColors = THREE.FaceColors;
+		
+		        // creation du maillage 
+		        groundMesh = new THREE.Mesh(geometry,mat);
+        		groundMesh.name = 'terrain';
+		
+		        scene.add(groundMesh);
+		        
+		        // Lancement premier rendu recursif
+		        animate();
+
+		    }
+		    
+		    // Fonction pour gerer drop image
+			function drop(ev) {
+			    ev.preventDefault();
+			    var data = ev.dataTransfer.getData("text");
+			    ev.target.appendChild(document.getElementById(data));
+			}
+			
+			function onDocumentMouseMove( event ) {
+				mouseX = event.clientX - windowHalfX;
+				mouseY = event.clientY - windowHalfY;
+			}
+			function onDocumentTouchStart( event ) {
+				if ( event.touches.length === 1 ) {
+					event.preventDefault();
+					mouseX = event.touches[ 0 ].pageX - windowHalfX;
+					mouseY = event.touches[ 0 ].pageY - windowHalfY;
+				}
+			}
+			function onDocumentTouchMove( event ) {
+				if ( event.touches.length === 1 ) {
+					event.preventDefault();
+					mouseX = event.touches[ 0 ].pageX - windowHalfX;
+					mouseY = event.touches[ 0 ].pageY - windowHalfY;
+				}
+			}
+			function onWindowResize( event ) {
+				windowHalfX = window.innerWidth / 2;
+				windowHalfY = window.innerHeight / 2;
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+			}
+			//
+			function animate() {
+				requestAnimationFrame( animate );
+
+				//lier la variable myHeight avec le scroll ici 
+
+				render();
+			}
+			
+			
+			function render() {
+	
+				// Mouvements camera
+				var time = Date.now() * 0.0005;
+				camera.position.x += ( mouseX - camera.position.x ) * 0.05;
+				camera.position.y += ( - mouseY - camera.position.y ) * 0.05;
+				camera.lookAt( scene.position );
+			
+			
+				spotLight.position.x = Math.sin( time * 0.7 ) * 300;
+				spotLight.position.z = - Math.cos( time * 0.3 ) * 100;
+				sphere.position.z = spotLight.position.z;
+				sphere.position.y = spotLight.position.y;
+
+
+
+				 t+=0.01;
+				// Legere animation des sommets
+				for (var i=0; i < groundMesh.geometry.vertices.length; ++i){	
+					//groundMesh.geometry.vertices[i].y += 0.1*(Math.random() - 0.5);	
+					//var v = verticesOrigin[i];
+					//var dist = Math.sqrt(v.x);
+					//groundMesh.geometry.vertices[i].y += verticesOrigin[i]+ Math.sin(t+verticesOrigin[i].x/600);
+					//groundMesh.geometry.vertices[i].y += Math.sin(t+groundMesh.geometry.vertices[i].x/600);
+
+				}
+				groundMesh.geometry.verticesNeedUpdate = true;
+	 			
+				//groundMesh.rotation.y+=0.004;  
+
+				
+				// Rendu de la scene 
+				renderer.render( scene, camera );
+				
+			}
+		</script>
+	</body>
+</html>
