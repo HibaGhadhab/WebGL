@@ -1,0 +1,106 @@
+<html>
+    <head>
+        <style>
+            body{margin: 0px;}
+        </style>
+    </head>
+</html>
+<body>
+        <script src="dat.gui.js"></script>
+        <script src="three.js"></script>
+
+    <script>
+        var camera, scene, renderer;
+        var geometry, material, sphere;
+        var texture, texturebump; 
+        var speed = 0.1;
+        var opacity = 1 ;
+        var explosionOn = false; 
+        var time = 0;
+        var color = "#ffae23";
+                
+        init();
+        animate();
+        
+        function init() {
+        
+            camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.01, 10 );
+            camera.position.z = 1;
+        
+            scene = new THREE.Scene();
+        
+            geometry = new THREE.SphereGeometry( 0.35, 30, 30 );
+            var clouds = new THREE.TextureLoader().load("clouds.jpg");
+            texture = new THREE.TextureLoader().load("8k_earth_daymap.jpg" );
+            texturebump = new THREE.TextureLoader().load("earthmap1k.jpg");
+
+            material = new THREE.MeshPhongMaterial(
+                {
+                    specularMap : clouds,
+                    map: texture, 
+                    bumpMap: texturebump,
+                    bumpScale  :  0.02,
+                    opacity:0.5
+                });
+
+            sphere = new THREE.Mesh( geometry, material );
+            scene.add( sphere );
+
+            var light = new THREE.PointLight( 0xffffff, 1.5, 100 );
+            light.position.set( 5,5,5);
+            scene.add(light);
+        
+            renderer = new THREE.WebGLRenderer( { antialias: true } );
+            renderer.setSize( window.innerWidth, window.innerHeight );
+            document.body.appendChild( renderer.domElement );
+        
+        }
+        
+        //dat.gui
+        var FizzyText = function() {
+            this.message = 'dat.gui';
+            this.speed = 0.1;
+            this.opacity = 1;
+            this.time = 0;
+            //this.color = "#ffae23"; 
+            this.displayOutline = false;
+            this.explode = function() { console.log("explode") };
+            // Define render logic ...
+        };
+
+        window.onload = function() {
+            var text = new FizzyText();
+            var gui = new dat.GUI();
+            gui.add(text, 'message');
+            gui.add(text, 'speed', -5, 5).onChange(function(value){speed = value});
+            gui.add(text, 'opacity', 0,1).onChange(function(value){opacity = value});
+            //gui.addColor(text, 'color').onChange(function(value){color = value});
+            gui.add(text, 'displayOutline').onChange(function(val){console.log(val)});
+            gui.add(text, 'explode').onChange(function(){time =0; explosionOn = true});
+        };
+
+        function explode (){
+
+        }
+        
+        function animate() {
+        
+            requestAnimationFrame( animate );
+            time +=0.1;
+            //sphere.rotation.x += speed /10;
+            sphere.rotation.y += speed /10;
+            sphere.material.opacity = opacity;
+            //sphere.material.color = color;  
+            if (explosionOn){
+                var newScale = 1 + 2 * Math.sin(time);
+                sphere.scale.set(newScale,newScale, newScale);
+                sphere.material.color = new THREE.Color(Math.sin(time)*0xffffff);
+                if (newScale <= 1) explosionOn = false; 
+            }
+        
+            renderer.render( scene, camera );
+        
+        }
+        </script>
+
+</body>
