@@ -23,7 +23,7 @@
             // var positionOnGlobe = { longitude: 6.2230, latitude: 45.8532, altitude: 5000 };
 
             // Position near Gerbier mountain.
-            var positionOnGlobe = { longitude: 4.22, latitude: 44.844, altitude: 4000 };
+            var positionOnGlobe = { longitude: 2.5873236, latitude: 48.841023, altitude: 4000 };
 
             // `viewerDiv` will contain iTowns' rendering area (`<canvas>`)
             var viewerDiv = document.getElementById('viewerDiv');
@@ -55,8 +55,20 @@
             function addMeshToScene() {
                 // creation of the new mesh (a cylinder)
                 var THREE = itowns.THREE;
-                var geometry = new THREE.CylinderGeometry(0, 10, 60, 8);
-                var material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+                var geometry = new THREE.BoxGeometry(60,60,60,60);
+
+                //texture 
+                var loader = new THREE.CubeTextureLoader();
+                loader.setPath( 'images/' ); //mettre image ensg ici 
+    
+                var textureCube = loader.load( [
+                    'ensg.jpg', 'ensg.jpg',
+                    'ensg.jpg', 'ensg.jpg',
+                    'ensg.jpg', 'ensg.jpg'
+                ] );
+
+                var material = new THREE.MeshBasicMaterial({ color: 0xff0000, envMap: textureCube });
+                
                 var mesh = new THREE.Mesh(geometry, material);
 
                 // get the position on the globe, from the camera
@@ -70,6 +82,12 @@
                 mesh.position.copy(meshCoord.as(view.referenceCrs).xyz());
                 mesh.lookAt(new THREE.Vector3(0, 0, 0));
                 mesh.rotateX(Math.PI / 2);
+
+
+
+
+
+
 
                 // update coordinate of the mesh
                 mesh.updateMatrixWorld();

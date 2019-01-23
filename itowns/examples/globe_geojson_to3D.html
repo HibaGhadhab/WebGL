@@ -60,11 +60,12 @@
             ariege = new itowns.GeometryLayer('ariege', new itowns.THREE.Group());
             ariege.update = itowns.FeatureProcessing.update;
             ariege.convert = itowns.Feature2Mesh.convert({
+                altitude: 140,
                 color: color,
                 extrude: extrude });
 
             ariege.source = new itowns.FileSource({
-                url: 'https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements/09-ariege/departement-09-ariege.geojson',
+                url: '224400028_pistes-cyclables-en-loire-atlantique.geojson',
                 projection: 'EPSG:4326',
                 format: 'application/json',
                 zoom: { min: 7, max: 7 },
