@@ -24,7 +24,8 @@
             // setting is "coordonnée geographiques en degres decimaux"
 
             // Position near Gerbier mountain.
-            var positionOnGlobe = { longitude: 4.21655, latitude: 44.84415, altitude: 2000 };
+            //2.59, 48.84
+            var positionOnGlobe = { longitude: 2.59, latitude: 48.84, altitude: 2000 };
 
             // `viewerDiv` will contain iTowns' rendering area (`<canvas>`)
             var viewerDiv = document.getElementById('viewerDiv');
@@ -57,22 +58,28 @@
             }
             itowns.Fetcher.json('./layers/JSONLayers/WORLD_DTM.json').then(addElevationLayerFromConfig);
             itowns.Fetcher.json('./layers/JSONLayers/IGN_MNT_HIGHRES.json').then(addElevationLayerFromConfig);
-            
+        
+    
+
+
             // ThreeLoader can load each format proposed in ThreeJs examples loaders : https://github.com/mrdoob/three.js/tree/dev/examples/js/loaders
-            var promiseCollada = ThreeLoader.load('Collada', 'https://raw.githubusercontent.com/iTowns/iTowns2-sample-data/master/models/collada/building.dae')
+            //var promiseCollada = ThreeLoader.load('Collada', 'https://raw.githubusercontent.com/iTowns/iTowns2-sample-data/master/models/collada/building.dae')
+            var promiseCollada = ThreeLoader.load('GLTF', 'cyberpunk_dragon_ld34/scene.gltf')
             .then(collada => {
                 var model = collada.scene;
 
                 // building coordinate
-                var coord = new itowns.Coordinates('EPSG:4326', 4.2165, 44.844, 1417);
+                //2.5858, 48.8411
+                var coord = new itowns.Coordinates('EPSG:4326', 2.59, 48.84, 130);
                 var colladaID = view.mainLoop.gfxEngine.getUniqueThreejsLayer();
 
                 model.position.copy(coord.as(view.referenceCrs).xyz());
                 // align up vector with geodesic normal
                 model.lookAt(model.position.clone().add(coord.geodesicNormal));
                 // user rotate building to align with ortho image
-                model.rotateZ(-Math.PI * 0.2);
-                model.scale.set(1.2, 1.2, 1.2);
+                //model.rotateZ(-Math.PI * 0.5);
+                model.rotateX(-Math.PI * -0.5);
+                model.scale.set(30,30,30,30);
 
                 // set camera's layer to do not disturb the picking
                 model.traverse(function _(obj) { obj.layers.set(colladaID); });
@@ -82,7 +89,13 @@
                 model.updateMatrixWorld();
 
                 view.scene.add(model);
+
+                var light = new THREE.AmbientLight( 0x404040,10); // soft white light
+                view.scene.add( light );
+
                 view.notifyChange();
+
+                
             });
 
             // Listen for globe full initialisation event
